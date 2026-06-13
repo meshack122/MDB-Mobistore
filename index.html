@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDB Mobi Store — Business Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --purple:#a78bfa;
+    --purple-dark:#8b5cf6;
+    --purple-glow: rgba(167,139,250,0.18);
+    --bg:#0f0d1a;
+    --bg-alt:#171428;
+    --card:#1c1830;
+    --card-alt:#241f3d;
+    --ink:#f1eefc;
+    --muted:#9b94c4;
+    --green:#4ade80;
+    --red:#f87171;
+    --border:#322c54;
+    --shadow: 0 8px 28px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height:100vh;
+  }
+  header{
+    background: linear-gradient(135deg, #2a2350, #1a1530);
+    color:#fff;
+    padding: 22px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    box-shadow: var(--shadow);
+    position:sticky; top:0; z-index:50;
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-logo{
+    width:44px; height:44px; border-radius:12px;
+    background: var(--purple);
+    color:#1a1530;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:18px; letter-spacing:-1px;
+    box-shadow: 0 0 18px var(--purple-glow);
+  }
+  .brand-text h1{font-size:1.25rem; font-weight:700; letter-spacing:0.5px;}
+  .brand-text span{font-size:0.78rem; opacity:0.7;}
+
+  nav{display:flex; gap:6px; flex-wrap:wrap;}
+  nav button{
+    background:rgba(167,139,250,0.08);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:0.85rem;
+    cursor:pointer;
+    transition:all .15s ease;
+    font-weight:500;
+  }
+  nav button:hover{background:rgba(167,139,250,0.16); color:var(--ink);}
+  nav button.active{background:var(--purple); color:#1a1530; font-weight:700; border-color:var(--purple);}
+
+  main{padding: 24px; max-width:1300px; margin:0 auto;}
+  .page{display:none; animation:fade .25s ease;}
+  .page.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  h2.section-title{font-size:1.3rem; margin-bottom:16px; color:var(--ink); font-weight:700;}
+  .subtle{color:var(--muted); font-size:0.85rem;}
+
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+    gap:16px;
+    margin-bottom:24px;
+  }
+  .kpi-card{
+    background:var(--card);
+    border-radius:16px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi-card::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg, var(--purple), var(--purple-dark));
+  }
+  .kpi-label{font-size:0.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px; font-weight:600;}
+  .kpi-value{font-size:1.6rem; font-weight:800; margin-top:6px; color:var(--ink);}
+  .kpi-value.green{color:var(--green);}
+  .kpi-value.red{color:var(--red);}
+
+  .panel{
+    background:var(--card);
+    border-radius:16px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    margin-bottom:20px;
+  }
+  .panel h3{font-size:1rem; margin-bottom:14px; color:var(--ink); font-weight:700;}
+  .grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media(max-width:900px){ .grid-2, .grid-3{grid-template-columns:1fr;} }
+
+  canvas{max-height:320px;}
+
+  table{width:100%; border-collapse:collapse; font-size:0.88rem;}
+  th{
+    text-align:left; padding:10px 12px; background:var(--card-alt);
+    color:var(--purple); font-weight:700; font-size:0.78rem;
+    text-transform:uppercase; letter-spacing:0.4px;
+    position:sticky; top:0;
+  }
+  td{padding:10px 12px; border-bottom:1px solid var(--border);}
+  tr:hover td{background:var(--card-alt);}
+  .table-wrap{overflow-x:auto; max-height:480px; overflow-y:auto; border-radius:10px; border:1px solid var(--border);}
+
+  .badge{display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.75rem; font-weight:700;}
+  .badge.low{background:rgba(248,113,113,0.15); color:var(--red);}
+  .badge.ok{background:rgba(74,222,128,0.15); color:var(--green);}
+  .badge.profit{background:rgba(74,222,128,0.15); color:var(--green);}
+  .badge.loss{background:rgba(248,113,113,0.15); color:var(--red);}
+
+  .alert-list{display:flex; flex-direction:column; gap:8px;}
+  .alert-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.25);
+    border-radius:10px; font-size:0.88rem;
+  }
+  .alert-item strong{color:var(--red);}
+  .alert-empty{color:var(--green); font-weight:600; padding:10px 0;}
+
+  .filter-bar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; align-items:center;}
+  .filter-bar select, .filter-bar input{
+    padding:8px 14px; border-radius:10px; border:1px solid var(--border);
+    background:var(--card-alt); font-size:0.85rem; color:var(--ink); font-family:inherit;
+  }
+  .filter-bar label{font-size:0.8rem; font-weight:700; color:var(--muted); margin-right:-4px;}
+
+  .pill-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+  .pill{
+    padding:8px 16px; border-radius:999px; background:var(--card-alt);
+    color:var(--muted); font-weight:700; font-size:0.85rem; cursor:pointer; border:1px solid var(--border);
+  }
+  .pill.active{background:var(--purple); color:#1a1530; border-color:var(--purple);}
+
+  footer{text-align:center; padding:24px; color:var(--muted); font-size:0.8rem;}
+
+  .growth-box{display:flex; flex-direction:column; gap:10px;}
+  .growth-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; background:var(--card-alt); border-radius:12px; border:1px solid var(--border);
+  }
+  .growth-row .name{font-weight:700;}
+  .growth-row .val{font-weight:800; font-size:1.05rem;}
+
+  .top-product-card{
+    display:flex; align-items:center; gap:14px;
+    padding:14px; border-radius:12px; background:var(--card-alt);
+    border:1px solid var(--border); margin-bottom:10px;
+  }
+  .top-product-rank{
+    width:34px; height:34px; border-radius:50%; background:var(--purple);
+    color:#1a1530; display:flex; align-items:center; justify-content:center; font-weight:800; flex-shrink:0;
+  }
+  .top-product-info{flex:1;}
+  .top-product-info .name{font-weight:700;}
+  .top-product-info .meta{font-size:0.78rem; color:var(--muted);}
+  .top-product-amt{font-weight:800; font-size:1.05rem;}
+
+  /* Editable price input */
+  .price-edit{
+    display:flex; align-items:center; gap:6px;
+  }
+  .price-edit input{
+    width:90px; padding:6px 8px; border-radius:8px; border:1px solid var(--border);
+    background:var(--card-alt); color:var(--ink); font-family:inherit; font-size:0.85rem;
+  }
+  .price-edit button{
+    padding:6px 10px; border-radius:8px; border:none; background:var(--purple);
+    color:#1a1530; font-weight:700; cursor:pointer; font-size:0.78rem;
+  }
+  .price-edit button:hover{background:var(--purple-dark);}
+  .save-status{font-size:0.72rem; color:var(--green); margin-left:4px;}
+
+  /* Forms */
+  .form-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:14px;}
+  .form-grid label{display:flex; flex-direction:column; font-size:0.78rem; color:var(--muted); font-weight:700; gap:6px;}
+  .form-grid input, .form-grid select{
+    padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:var(--card-alt); color:var(--ink); font-family:inherit; font-size:0.9rem;
+  }
+  .submit-btn{
+    padding:10px 22px; border-radius:10px; border:none; background:var(--purple);
+    color:#1a1530; font-weight:800; cursor:pointer; font-size:0.9rem;
+  }
+  .submit-btn:hover{background:var(--purple-dark);}
+  .form-msg{font-size:0.85rem; margin-top:10px; font-weight:600;}
+  .form-msg.success{color:var(--green);}
+  .form-msg.error{color:var(--red);}
+
+  /* Connection status */
+  .conn-status{
+    font-size:0.75rem; padding:5px 12px; border-radius:999px; font-weight:700;
+    display:flex; align-items:center; gap:6px;
+  }
+  .conn-status.connected{background:rgba(74,222,128,0.12); color:var(--green); border:1px solid rgba(74,222,128,0.3);}
+  .conn-status.local{background:rgba(167,139,250,0.12); color:var(--purple); border:1px solid var(--border);}
+  .conn-dot{width:8px; height:8px; border-radius:50%; background:currentColor;}
+
+  .loading-overlay{
+    position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center;
+    z-index:999; flex-direction:column; gap:14px;
+  }
+  .spinner{
+    width:42px; height:42px; border:4px solid var(--border); border-top-color:var(--purple);
+    border-radius:50%; animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay" style="display:none;">
+  <div class="spinner"></div>
+  <div class="subtle">Loading your business data...</div>
+</div>
+
+<div class="loading-overlay" id="access-gate">
+  <div style="max-width:360px; width:90%; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; box-shadow:var(--shadow);">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+      <div class="brand-logo">MDB</div>
+      <div>
+        <div style="font-weight:800; font-size:1.1rem;">MDB Mobi Store</div>
+        <div class="subtle">Private business dashboard</div>
+      </div>
+    </div>
+    <label style="display:block; font-size:0.8rem; font-weight:700; color:var(--muted); margin-bottom:8px;">Enter access key</label>
+    <input type="password" id="access-key-input" placeholder="Access key" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:var(--card-alt); color:var(--ink); font-family:inherit; font-size:0.9rem; margin-bottom:12px;">
+    <button id="access-key-submit" class="submit-btn" style="width:100%;">Unlock</button>
+    <div class="form-msg error" id="access-key-msg" style="margin-top:10px;"></div>
+    <p class="subtle" style="margin-top:14px; line-height:1.5;">
+      This key is required to load your Google Sheet data on this device. It is remembered only in this browser.
+    </p>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">MDB</div>
+    <div class="brand-text">
+      <h1>MDB Mobi Store</h1>
+      <span>Business Tracker &amp; Insights</span>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+    <button class="nav-btn" data-page="trends">Trends</button>
+    <button class="nav-btn" data-page="inventory">Inventory</button>
+    <button class="nav-btn" data-page="sales">Sales</button>
+    <button class="nav-btn" data-page="stock">Stock</button>
+    <button class="nav-btn" data-page="expenses">Expenses</button>
+    <button class="nav-btn" data-page="growth">Growth</button>
+  </nav>
+  <div class="conn-status" id="conn-status"><span class="conn-dot"></span><span id="conn-text">Checking connection...</span></div>
+  <button id="lock-btn" style="background:rgba(167,139,250,0.08); border:1px solid var(--border); color:var(--muted); padding:8px 14px; border-radius:999px; font-size:0.78rem; cursor:pointer; font-weight:600;">🔒 Lock</button>
+</header>
+
+<main>
+
+  <!-- DASHBOARD PAGE -->
+  <section class="page active" id="page-dashboard">
+    <h2 class="section-title">Overview</h2>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Revenue vs Profit (by week)</h3>
+        <canvas id="chart-revenue-profit"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Low Stock Alerts</h3>
+        <div class="alert-list" id="low-stock-list"></div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <h3>🏆 Best Selling Products</h3>
+        <div id="best-selling"></div>
+      </div>
+      <div class="panel">
+        <h3>💰 Most Profitable Products</h3>
+        <div id="most-profitable"></div>
+      </div>
+      <div class="panel">
+        <h3>Expenses by Category</h3>
+        <canvas id="chart-expenses"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRENDS PAGE -->
+  <section class="page" id="page-trends">
+    <h2 class="section-title">Sales Trends</h2>
+    <div class="pill-row" id="trend-pills">
+      <div class="pill active" data-range="day">By Day</div>
+      <div class="pill" data-range="week">By Week</div>
+      <div class="pill" data-range="month">By Month</div>
+      <div class="pill" data-range="year">By Year</div>
+    </div>
+    <div class="panel">
+      <h3>Revenue, Cost &amp; Profit Trend</h3>
+      <canvas id="chart-trend" style="max-height:380px;"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Units Sold Trend</h3>
+      <canvas id="chart-units-trend" style="max-height:300px;"></canvas>
+    </div>
+  </section>
+
+  <!-- INVENTORY PAGE -->
+  <section class="page" id="page-inventory">
+    <h2 class="section-title">Inventory</h2>
+
+    <div class="panel">
+      <h3>🆕 Register New Product</h3>
+      <p class="subtle" style="margin-bottom:14px;">
+        The Product ID is generated automatically by your Google Sheet's formula. New products instantly
+        appear in the Sales and Stock product dropdowns.
+      </p>
+      <form id="form-product">
+        <div class="form-grid">
+          <label>Product <input type="text" name="Product" required></label>
+          <label>Units at Store (opening) <input type="number" name="UnitsAtStore" min="0" step="any" value="0"></label>
+          <label>Margin Selling Price/Unit <input type="number" name="SellingPrice" min="0" step="any" placeholder="price to sell at"></label>
+          <label>Comment <input type="text" name="Comment" placeholder="optional"></label>
+        </div>
+        <button type="submit" class="submit-btn">Register Product</button>
+        <div class="form-msg" id="msg-product"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>✏️ Edit Margin Selling Price</h3>
+      <form id="form-edit-product">
+        <div class="form-grid">
+          <label>Product
+            <select name="ID" id="edit-product-select" required></select>
+          </label>
+          <label>Margin Selling Price/Unit <input type="number" name="SellingPrice" min="0" step="any"></label>
+        </div>
+        <button type="submit" class="submit-btn">Update Product</button>
+        <div class="form-msg" id="msg-edit-product"></div>
+      </form>
+    </div>
+
+    <div class="filter-bar">
+      <label>Search</label>
+      <input type="text" id="inventory-search" placeholder="Search product name or ID...">
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="inventory-thead-row"></tr>
+          </thead>
+          <tbody id="inventory-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SALES PAGE -->
+  <section class="page" id="page-sales">
+    <h2 class="section-title">Sales Log</h2>
+
+    <div class="panel">
+      <h3>📦 Record a Sale</h3>
+      <form id="form-sale">
+        <div class="form-grid">
+          <label>Date <input type="date" name="Date" required></label>
+          <label>Product
+            <select name="Product" required></select>
+          </label>
+          <label>Units Sold <input type="number" name="UnitsSold" min="0" step="any" required></label>
+          <label>Unit Price <input type="number" name="UnitPrice" min="0" step="any" required></label>
+        </div>
+        <button type="submit" class="submit-btn">Record Sale</button>
+        <div class="form-msg" id="msg-sale"></div>
+      </form>
+    </div>
+
+    <div class="filter-bar">
+      <label>Search</label>
+      <input type="text" id="sales-search" placeholder="Search by product...">
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="sales-thead-row"></tr></thead>
+          <tbody id="sales-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- STOCK PAGE -->
+  <section class="page" id="page-stock">
+    <h2 class="section-title">Stock Log</h2>
+
+    <div class="panel">
+      <h3>🚚 Record Stock Purchase</h3>
+      <form id="form-stock">
+        <div class="form-grid">
+          <label>Date <input type="date" name="Date" required></label>
+          <label>Product
+            <select name="Product" required></select>
+          </label>
+          <label>Units Purchased <input type="number" name="UnitsPurchased" min="0" step="any" required></label>
+          <label>Unit Cost <input type="number" name="UnitCost" min="0" step="any" required></label>
+        </div>
+        <button type="submit" class="submit-btn">Record Purchase</button>
+        <div class="form-msg" id="msg-stock"></div>
+      </form>
+    </div>
+
+    <div class="filter-bar">
+      <label>Search</label>
+      <input type="text" id="stock-search" placeholder="Search by product...">
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="stock-thead-row"></tr></thead>
+          <tbody id="stock-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPENSES PAGE -->
+  <section class="page" id="page-expenses">
+    <h2 class="section-title">Expenses Log</h2>
+
+    <div class="panel">
+      <h3>💸 Record Expense</h3>
+      <form id="form-expense">
+        <div class="form-grid">
+          <label>Date <input type="date" name="Date" required></label>
+          <label>Category <input type="text" name="Category" required placeholder="e.g. Rent, Transport..."></label>
+          <label>Description <input type="text" name="Description" required></label>
+          <label>Amount <input type="number" name="Amount" min="0" step="any" required></label>
+        </div>
+        <button type="submit" class="submit-btn">Record Expense</button>
+        <div class="form-msg" id="msg-expense"></div>
+      </form>
+    </div>
+
+    <div class="filter-bar">
+      <label>Search</label>
+      <input type="text" id="expenses-search" placeholder="Search by category or description...">
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="expenses-thead-row"></tr></thead>
+          <tbody id="expenses-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- GROWTH PAGE -->
+  <section class="page" id="page-growth">
+    <h2 class="section-title">Business Growth &amp; Capital Return</h2>
+    <div class="kpi-grid" id="growth-kpi-grid"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Capital Invested vs Returned by Product</h3>
+        <canvas id="chart-capital"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Rate of Capital Return by Product</h3>
+        <div class="growth-box" id="capital-return-list"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Cumulative Profit Over Time (Business Growth)</h3>
+      <canvas id="chart-cumulative" style="max-height:340px;"></canvas>
+      <p class="subtle" style="margin-top:10px;">
+        This shows how your total accumulated profit grows over time — a proxy for how your capital base is increasing as you reinvest earnings.
+      </p>
+    </div>
+  </section>
+
+
+</main>
+
+<footer>MDB Mobi Store — Business Tracker · <span id="footer-status">Local data</span></footer>
+
+<script>
+/* =========================================================
+   CONFIG: Paste your Apps Script Web App URL here.
+   Leave empty ('') to run on the bundled sample data only.
+   See SETUP_INSTRUCTIONS.md for how to get this URL.
+   ========================================================= */
+const APPS_SCRIPT_URL = ''; // e.g. 'https://script.google.com/macros/s/XXXXXXXX/exec'
+
+const ACCESS_KEY_STORAGE = 'mdb_access_key';
+function getAccessKey(){ return localStorage.getItem(ACCESS_KEY_STORAGE) || ''; }
+function setAccessKey(k){ localStorage.setItem(ACCESS_KEY_STORAGE, k); }
+
+// Appends the access key to an Apps Script URL/body so the backend can verify it.
+function withKey(url){
+  const key = getAccessKey();
+  return url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key);
+}
+function withKeyBody(payload){
+  return JSON.stringify({...payload, key: getAccessKey()});
+}
+
+const FALLBACK_DATA = {"inventory": [{"Product": "Rice (50kg bag)", "ID": "MDB-0001", "TotalPurchased": 72, "TotalSold": 10, "UnitsAtStore": 62, "InitialCapital": 962, "ReturnedCapital": 112.0, "Profit": -850.0, "Comment": "Just bought new stock"}, {"Product": "Sugar (1kg)", "ID": "MDB-0002", "TotalPurchased": 80, "TotalSold": 45, "UnitsAtStore": 35, "InitialCapital": 128, "ReturnedCapital": 731.0, "Profit": 603.0, "Comment": ""}, {"Product": "Cooking Oil (5L)", "ID": "MDB-0003", "TotalPurchased": 90, "TotalSold": 10, "UnitsAtStore": 80, "InitialCapital": 256, "ReturnedCapital": 25.0, "Profit": -231.0, "Comment": ""}, {"Product": "Flour (2kg)", "ID": "MDB-0004", "TotalPurchased": 110, "TotalSold": 19, "UnitsAtStore": 91, "InitialCapital": 1400, "ReturnedCapital": 85.5, "Profit": -1314.5, "Comment": ""}, {"Product": "Soap Bar", "ID": "MDB-0005", "TotalPurchased": 300, "TotalSold": 1092, "UnitsAtStore": -792, "InitialCapital": 390, "ReturnedCapital": 122304.0, "Profit": 121914.0, "Comment": ""}, {"Product": "Milk (1L)", "ID": "MDB-0006", "TotalPurchased": 110, "TotalSold": 15, "UnitsAtStore": 95, "InitialCapital": 311, "ReturnedCapital": 65.0, "Profit": -246.0, "Comment": ""}, {"Product": "Bread Loaf", "ID": "MDB-0007", "TotalPurchased": 50, "TotalSold": 31, "UnitsAtStore": 19, "InitialCapital": 95, "ReturnedCapital": 432.0, "Profit": 337.0, "Comment": ""}, {"Product": "Salt (500g)", "ID": "MDB-0008", "TotalPurchased": 15, "TotalSold": 27, "UnitsAtStore": -12, "InitialCapital": 525, "ReturnedCapital": 140.0, "Profit": -385.0, "Comment": ""}, {"Product": "Rice (50kg bag)", "ID": "MDB-0009", "TotalPurchased": 72, "TotalSold": 10, "UnitsAtStore": 62, "InitialCapital": 962, "ReturnedCapital": 112.0, "Profit": -850.0, "Comment": ""}, {"Product": "Sugar (1kg)", "ID": "MDB-0010", "TotalPurchased": 80, "TotalSold": 45, "UnitsAtStore": 35, "InitialCapital": 128, "ReturnedCapital": 731.0, "Profit": 603.0, "Comment": ""}, {"Product": "Milk (1L)", "ID": "MDB-0011", "TotalPurchased": 110, "TotalSold": 15, "UnitsAtStore": 95, "InitialCapital": 311, "ReturnedCapital": 65.0, "Profit": -246.0, "Comment": ""}, {"Product": "Bread Loaf", "ID": "MDB-0012", "TotalPurchased": 50, "TotalSold": 31, "UnitsAtStore": 19, "InitialCapital": 95, "ReturnedCapital": 432.0, "Profit": 337.0, "Comment": ""}, {"Product": "Sugar (1kg)", "ID": "MDB-0013", "TotalPurchased": 80, "TotalSold": 45, "UnitsAtStore": 35, "InitialCapital": 128, "ReturnedCapital": 731.0, "Profit": 603.0, "Comment": ""}, {"Product": "Sugar (1kg)", "ID": "MDB-0014", "TotalPurchased": 80, "TotalSold": 45, "UnitsAtStore": 35, "InitialCapital": 128, "ReturnedCapital": 731.0, "Profit": 603.0, "Comment": ""}, {"Product": "Chapati", "ID": "MDB-0015", "TotalPurchased": 0, "TotalSold": 20, "UnitsAtStore": -20, "InitialCapital": 0, "ReturnedCapital": 36.0, "Profit": 36.0, "Comment": ""}], "sales": [{"Date": "2026-05-01", "Product": "Rice (50kg bag)", "UnitsSold": 2, "UnitPrice": 42.0, "Total": 84.0, "WeekID": "2026-W18"}, {"Date": "2026-05-01", "Product": "Cooking Oil (5L)", "UnitsSold": 10, "UnitPrice": 2.5, "Total": 25.0, "WeekID": "2026-W18"}, {"Date": "2026-05-02", "Product": "Sugar (1kg)", "UnitsSold": 3, "UnitPrice": 12.0, "Total": 36.0, "WeekID": "2026-W18"}, {"Date": "2026-05-02", "Product": "Soap Bar", "UnitsSold": 15, "UnitPrice": 1.8, "Total": 27.0, "WeekID": "2026-W18"}, {"Date": "2026-05-03", "Product": "Bread Loaf", "UnitsSold": 1, "UnitPrice": 42.0, "Total": 42.0, "WeekID": "2026-W18"}, {"Date": "2026-05-03", "Product": "Rice (50kg bag)", "UnitsSold": 8, "UnitPrice": 3.5, "Total": 28.0, "WeekID": "2026-W18"}, {"Date": "2026-05-04", "Product": "Soap Bar", "UnitsSold": 20, "UnitPrice": 2.0, "Total": 40.0, "WeekID": "2026-W19"}, {"Date": "2026-05-04", "Product": "Milk (1L)", "UnitsSold": 5, "UnitPrice": 6.0, "Total": 30.0, "WeekID": "2026-W19"}, {"Date": "2026-05-05", "Product": "Flour (2kg)", "UnitsSold": 15, "UnitPrice": 2.5, "Total": 37.5, "WeekID": "2026-W19"}, {"Date": "2026-05-05", "Product": "Soap Bar", "UnitsSold": 12, "UnitPrice": 1.0, "Total": 12.0, "WeekID": "2026-W19"}, {"Date": "2026-05-06", "Product": "Sugar (1kg)", "UnitsSold": 3, "UnitPrice": 45.0, "Total": 135.0, "WeekID": "2026-W19"}, {"Date": "2026-05-06", "Product": "Flour (2kg)", "UnitsSold": 4, "UnitPrice": 12.0, "Total": 48.0, "WeekID": "2026-W19"}, {"Date": "2026-05-07", "Product": "Chapati", "UnitsSold": 20, "UnitPrice": 1.8, "Total": 36.0, "WeekID": "2026-W19"}, {"Date": "2026-05-07", "Product": "Milk (1L)", "UnitsSold": 10, "UnitPrice": 3.5, "Total": 35.0, "WeekID": "2026-W19"}, {"Date": "2026-05-08", "Product": "Salt (500g)", "UnitsSold": 25, "UnitPrice": 2.0, "Total": 50.0, "WeekID": "2026-W19"}, {"Date": "2026-05-08", "Product": "Salt (500g)", "UnitsSold": 2, "UnitPrice": 45.0, "Total": 90.0, "WeekID": "2026-W19"}, {"Date": "2026-05-09", "Product": "Sugar (1kg)", "UnitsSold": 8, "UnitPrice": 6.0, "Total": 48.0, "WeekID": "2026-W19"}, {"Date": "2026-05-09", "Product": "Sugar (1kg)", "UnitsSold": 20, "UnitPrice": 2.5, "Total": 50.0, "WeekID": "2026-W19"}, {"Date": "2026-05-10", "Product": "Sugar (1kg)", "UnitsSold": 5, "UnitPrice": 12.0, "Total": 60.0, "WeekID": "2026-W19"}, {"Date": "2026-05-10", "Product": "Sugar (1kg)", "UnitsSold": 6, "UnitPrice": 67.0, "Total": 402.0, "WeekID": "2026-W19"}, {"Date": "2026-05-13", "Product": "Soap Bar", "UnitsSold": 1000, "UnitPrice": 122.0, "Total": 122000.0, "WeekID": "2026-W20"}, {"Date": "2026-05-31", "Product": "Bread Loaf", "UnitsSold": 30, "UnitPrice": 13.0, "Total": 390.0, "WeekID": "2026-W22"}, {"Date": "2026-06-07", "Product": "Soap Bar", "UnitsSold": 45, "UnitPrice": 5.0, "Total": 225.0, "WeekID": "2026-W23"}], "stock": [{"Date": "2026-04-29", "Product": "Rice (50kg bag)", "UnitsPurchased": 20, "UnitCost": 32.0, "TotalCost": 640, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Flour (2kg)", "UnitsPurchased": 100, "UnitCost": 1.8, "TotalCost": 180, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Milk (1L)", "UnitsPurchased": 30, "UnitCost": 8.5, "TotalCost": 255, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Rice (50kg bag)", "UnitsPurchased": 50, "UnitCost": 4.2, "TotalCost": 210, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Soap Bar", "UnitsPurchased": 200, "UnitCost": 1.2, "TotalCost": 240, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Cooking Oil (5L)", "UnitsPurchased": 50, "UnitCost": 2.8, "TotalCost": 140, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Soap Bar", "UnitsPurchased": 100, "UnitCost": 1.5, "TotalCost": 150, "WeekID": "2026-W18"}, {"Date": "2026-04-29", "Product": "Milk (1L)", "UnitsPurchased": 80, "UnitCost": 0.7, "TotalCost": 56, "WeekID": "2026-W18"}, {"Date": "2026-05-06", "Product": "Salt (500g)", "UnitsPurchased": 15, "UnitCost": 35.0, "TotalCost": 525, "WeekID": "2026-W19"}, {"Date": "2026-05-06", "Product": "Bread Loaf", "UnitsPurchased": 50, "UnitCost": 1.9, "TotalCost": 95, "WeekID": "2026-W19"}, {"Date": "2026-05-08", "Product": "Cooking Oil (5L)", "UnitsPurchased": 40, "UnitCost": 2.9, "TotalCost": 116, "WeekID": "2026-W19"}, {"Date": "2026-05-08", "Product": "Sugar (1kg)", "UnitsPurchased": 80, "UnitCost": 1.6, "TotalCost": 128, "WeekID": "2026-W19"}, {"Date": "2026-05-13", "Product": "Rice (50kg bag)", "UnitsPurchased": 2, "UnitCost": 56.0, "TotalCost": 112, "WeekID": "2026-W20"}, {"Date": "2026-05-13", "Product": "Flour (2kg)", "UnitsPurchased": 10, "UnitCost": 122.0, "TotalCost": 1220, "WeekID": "2026-W20"}], "expenses": [{"Date": "2026-05-01", "Category": "Rent", "Description": "Shop rent May", "Amount": 500, "WeekID": "2026-W18"}, {"Date": "2026-05-01", "Category": "Utilities", "Description": "Electricity", "Amount": 120, "WeekID": "2026-W18"}, {"Date": "2026-05-03", "Category": "Transport", "Description": "Delivery fuel", "Amount": 45, "WeekID": "2026-W18"}, {"Date": "2026-05-04", "Category": "Salaries", "Description": "Assistant salary", "Amount": 300, "WeekID": "2026-W19"}, {"Date": "2026-05-06", "Category": "Utilities", "Description": "Water bill", "Amount": 35, "WeekID": "2026-W19"}, {"Date": "2026-05-07", "Category": "Transport", "Description": "Market trip", "Amount": 25, "WeekID": "2026-W19"}, {"Date": "2026-05-08", "Category": "Miscellaneous", "Description": "Packaging materials", "Amount": 60, "WeekID": "2026-W19"}, {"Date": "2026-05-09", "Category": "Marketing", "Description": "Flyers printing", "Amount": 40, "WeekID": "2026-W19"}]}
+;
+
+let DATA = FALLBACK_DATA;
+const LOW_STOCK_THRESHOLD = 10;
+
+const fmtMoney = n => 'TZS ' + (Math.round((n||0)*100)/100).toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:2});
+const fmtPct = n => ((n||0)*100).toFixed(1) + '%';
+
+function getISOWeek(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(),0,4));
+  const weekNum = 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+}
+
+// Normalize a record from Apps Script (raw sheet headers) into our internal field names
+function normalizeData(raw){
+  const inventory = (raw.inventory||[]).map(r=>({
+    Product: r['Product'], ID: r['ID'],
+    TotalPurchased: Number(r['Total Units Purchased'])||0,
+    TotalSold: Number(r['Total Unit Sold'])||0,
+    UnitsAtStore: Number(r['Units at Store'])||0,
+    SellingPrice: (r['Price/Unit'] !== '' && r['Price/Unit'] !== undefined && r['Price/Unit'] !== null) ? Number(r['Price/Unit']) : null,
+    InitialCapital: Number(r['Initial Capital'])||0,
+    ReturnedCapital: Number(r['Returned Capital'])||0,
+    Profit: Number(r['Profit Generated'])||0,
+    Comment: r['Comment']||''
+  }));
+  const sales = (raw.sales||[]).map(r=>({
+    Date: r['Date'], Product: r['Product'],
+    UnitsSold: Number(r['Units Sold'])||0, UnitPrice: Number(r['Unit Price'])||0,
+    Total: Number(r['Total'])||0, WeekID: r['Week ID']
+  }));
+  const stock = (raw.stock||[]).map(r=>({
+    Date: r['Date'], Product: r['Product'],
+    UnitsPurchased: Number(r['Units Purchased'])||0, UnitCost: Number(r['Unit Cost'])||0,
+    TotalCost: Number(r['Total Cost'])||0, WeekID: r['Week ID']
+  }));
+  const expenses = (raw.expenses||[]).map(r=>({
+    Date: r['Date'], Category: r['Category'], Description: r['Description'],
+    Amount: Number(r['Amount'])||0, WeekID: r['Week ID']
+  }));
+
+  // Raw rows + column order for generic table rendering (excludes internal _row key)
+  function rawTable(rows){
+    const cleaned = (rows||[]).map(r=>{
+      const c = {...r}; delete c._row; return c;
+    });
+    const columns = cleaned.length ? Object.keys(cleaned[0]) : [];
+    return {columns, rows: cleaned};
+  }
+
+  return {
+    inventory, sales, stock, expenses,
+    rawInventory: rawTable(raw.inventory),
+    rawSales: rawTable(raw.sales),
+    rawStock: rawTable(raw.stock),
+    rawExpenses: rawTable(raw.expenses)
+  };
+}
+
+// FALLBACK_DATA already uses our internal field names; build raw-table equivalents too
+function normalizeFallback(raw){
+  raw.inventory = raw.inventory.map(r=>({...r, SellingPrice: null}));
+
+  raw.rawInventory = {
+    columns: ['Product','ID','Rate of Capital Return','Total Units Purchased','Total Unit Sold','Units at Store','Price/Unit','Initial Capital','Returned Capital','Profit Generated','Comment'],
+    rows: raw.inventory.map(r=>({
+      'Product': r.Product, 'ID': r.ID,
+      'Rate of Capital Return': r.InitialCapital ? (r.ReturnedCapital/r.InitialCapital) : '',
+      'Total Units Purchased': r.TotalPurchased, 'Total Unit Sold': r.TotalSold,
+      'Units at Store': r.UnitsAtStore, 'Price/Unit': r.SellingPrice ?? '',
+      'Initial Capital': r.InitialCapital, 'Returned Capital': r.ReturnedCapital,
+      'Profit Generated': r.Profit, 'Comment': r.Comment
+    }))
+  };
+  raw.rawSales = {
+    columns: ['Date','Product','Units Sold','Unit Price','Total','Week ID'],
+    rows: raw.sales.map(r=>({'Date': r.Date, 'Product': r.Product, 'Units Sold': r.UnitsSold, 'Unit Price': r.UnitPrice, 'Total': r.Total, 'Week ID': r.WeekID}))
+  };
+  raw.rawStock = {
+    columns: ['Date','Product','Units Purchased','Unit Cost','Total Cost','Week ID'],
+    rows: raw.stock.map(r=>({'Date': r.Date, 'Product': r.Product, 'Units Purchased': r.UnitsPurchased, 'Unit Cost': r.UnitCost, 'Total Cost': r.TotalCost, 'Week ID': r.WeekID}))
+  };
+  raw.rawExpenses = {
+    columns: ['Date','Category','Description','Amount','Week ID'],
+    rows: raw.expenses.map(r=>({'Date': r.Date, 'Category': r.Category, 'Description': r.Description, 'Amount': r.Amount, 'Week ID': r.WeekID}))
+  };
+
+  return raw;
+}
+
+async function loadData(){
+  const connStatus = document.getElementById('conn-status');
+  const connText = document.getElementById('conn-text');
+  const footerStatus = document.getElementById('footer-status');
+
+  if(APPS_SCRIPT_URL){
+    try{
+      const res = await fetch(withKey(APPS_SCRIPT_URL + '?action=getAll'));
+      const raw = await res.json();
+      if(raw.error === 'Unauthorized'){
+        document.getElementById('loading-overlay').style.display = 'none';
+        showAccessGate('Incorrect access key. Please try again.');
+        return;
+      }
+      if(raw.error) throw new Error(raw.error);
+      DATA = normalizeData(raw);
+      connStatus.className = 'conn-status connected';
+      connText.textContent = 'Connected to Google Sheet';
+      footerStatus.textContent = 'Live data from Google Sheets';
+    }catch(err){
+      console.error('Failed to load from Apps Script, using local data', err);
+      DATA = normalizeFallback(FALLBACK_DATA);
+      connStatus.className = 'conn-status local';
+      connText.textContent = 'Offline — showing sample data';
+      footerStatus.textContent = 'Sample data (connection failed)';
+    }
+  }else{
+    DATA = normalizeFallback(FALLBACK_DATA);
+    connStatus.className = 'conn-status local';
+    connText.textContent = 'Local sample data (not connected)';
+    footerStatus.textContent = 'Sample data — connect to Google Sheets in settings';
+  }
+
+  document.getElementById('loading-overlay').style.display = 'none';
+  renderEverything();
+}
+
+// ============ RENDER EVERYTHING ============
+let charts = {};
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+function renderEverything(){
+  renderDashboard();
+  renderTrend(getActiveTrendRange());
+  renderGenericTables();
+  renderGrowth();
+  populateProductSelects();
+}
+
+function getActiveTrendRange(){
+  const active = document.querySelector('#trend-pills .pill.active');
+  return active ? active.dataset.range : 'day';
+}
+
+// ---------- Dashboard ----------
+function renderDashboard(){
+  const totalSales = DATA.sales.reduce((s,r)=>s+r.UnitsSold,0);
+  const totalRevenue = DATA.sales.reduce((s,r)=>s+r.Total,0);
+  const totalExpenses = DATA.expenses.reduce((s,r)=>s+r.Amount,0);
+  const grossProfit = totalRevenue - totalExpenses;
+  const profitMargin = totalRevenue ? grossProfit/totalRevenue : 0;
+
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Sales (units)</div><div class="kpi-value">${totalSales.toLocaleString()}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value">${fmtMoney(totalRevenue)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-value red">${fmtMoney(totalExpenses)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Profit</div><div class="kpi-value green">${fmtMoney(grossProfit)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profit Margin</div><div class="kpi-value">${fmtPct(profitMargin)}</div></div>
+  `;
+
+  // Low stock
+  const lowStockList = document.getElementById('low-stock-list');
+  const lowStockItems = DATA.inventory.filter(p => p.UnitsAtStore <= LOW_STOCK_THRESHOLD);
+  lowStockList.innerHTML = lowStockItems.length === 0
+    ? `<div class="alert-empty">✅ All products are sufficiently stocked.</div>`
+    : lowStockItems.map(p => `
+      <div class="alert-item">
+        <span>${p.Product} <span class="subtle">(${p.ID})</span></span>
+        <strong>${p.UnitsAtStore <= 0 ? 'Out of stock' : p.UnitsAtStore + ' left'}</strong>
+      </div>`).join('');
+
+  // Aggregations
+  const productAgg = {};
+  DATA.inventory.forEach(p=>{
+    productAgg[p.Product] = productAgg[p.Product] || {sold:0, profit:0};
+    productAgg[p.Product].sold += p.TotalSold;
+    productAgg[p.Product].profit += p.Profit;
+  });
+  const bestSelling = Object.entries(productAgg).sort((a,b)=>b[1].sold - a[1].sold).slice(0,5);
+  const mostProfitable = Object.entries(productAgg).sort((a,b)=>b[1].profit - a[1].profit).slice(0,5);
+
+  document.getElementById('best-selling').innerHTML = bestSelling.map(([name,d],i)=>`
+    <div class="top-product-card">
+      <div class="top-product-rank">${i+1}</div>
+      <div class="top-product-info"><div class="name">${name}</div><div class="meta">${d.sold} units sold</div></div>
+      <div class="top-product-amt">${d.sold}</div>
+    </div>`).join('');
+
+  document.getElementById('most-profitable').innerHTML = mostProfitable.map(([name,d],i)=>`
+    <div class="top-product-card">
+      <div class="top-product-rank">${i+1}</div>
+      <div class="top-product-info"><div class="name">${name}</div><div class="meta">Profit generated</div></div>
+      <div class="top-product-amt" style="color:${d.profit>=0?'var(--green)':'var(--red)'}">${fmtMoney(d.profit)}</div>
+    </div>`).join('');
+
+  // Revenue vs profit by week
+  const weeklyAgg = {};
+  DATA.sales.forEach(s=>{ weeklyAgg[s.WeekID] = weeklyAgg[s.WeekID] || {revenue:0, cost:0}; weeklyAgg[s.WeekID].revenue += s.Total; });
+  DATA.stock.forEach(s=>{ weeklyAgg[s.WeekID] = weeklyAgg[s.WeekID] || {revenue:0, cost:0}; weeklyAgg[s.WeekID].cost += s.TotalCost; });
+  DATA.expenses.forEach(e=>{ weeklyAgg[e.WeekID] = weeklyAgg[e.WeekID] || {revenue:0, cost:0}; weeklyAgg[e.WeekID].cost += e.Amount; });
+  const weekKeys = Object.keys(weeklyAgg).sort();
+
+  destroyChart('revenueProfit');
+  charts.revenueProfit = new Chart(document.getElementById('chart-revenue-profit'), {
+    type:'bar',
+    data:{
+      labels: weekKeys,
+      datasets:[
+        {label:'Revenue', data: weekKeys.map(w=>weeklyAgg[w].revenue), backgroundColor:'#a78bfa', borderRadius:6},
+        {label:'Profit', data: weekKeys.map(w=>weeklyAgg[w].revenue - weeklyAgg[w].cost), backgroundColor:'#4ade80', borderRadius:6}
+      ]
+    },
+    options: chartOptions({stacked:false})
+  });
+
+  // Expenses by category
+  const expByCat = {};
+  DATA.expenses.forEach(e=>{ expByCat[e.Category] = (expByCat[e.Category]||0) + e.Amount; });
+  destroyChart('expenses');
+  charts.expenses = new Chart(document.getElementById('chart-expenses'), {
+    type:'doughnut',
+    data:{
+      labels: Object.keys(expByCat),
+      datasets:[{data: Object.values(expByCat), backgroundColor:['#a78bfa','#8b5cf6','#c4b5fd','#4ade80','#f87171','#fcd34d','#60a5fa']}]
+    },
+    options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12, font:{size:11}, color:'#9b94c4'}}}}
+  });
+}
+
+function chartOptions(opts={}){
+  return {
+    responsive:true,
+    plugins:{legend:{position:'bottom', labels:{color:'#9b94c4'}}},
+    scales:{
+      y:{beginAtZero:true, ticks:{color:'#9b94c4'}, grid:{color:'#322c54'}},
+      x:{ticks:{color:'#9b94c4'}, grid:{color:'#231f3a'}}
+    }
+  };
+}
+
+// ---------- Trends ----------
+function aggregateTrend(range){
+  const groups = {};
+  function keyFor(dateStr, weekId){
+    const d = new Date(dateStr);
+    if(range==='day') return dateStr;
+    if(range==='week') return weekId;
+    if(range==='month') return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    return `${d.getFullYear()}`;
+  }
+  DATA.sales.forEach(s=>{
+    const key = keyFor(s.Date, s.WeekID);
+    groups[key] = groups[key] || {revenue:0, units:0, cost:0};
+    groups[key].revenue += s.Total; groups[key].units += s.UnitsSold;
+  });
+  DATA.stock.forEach(s=>{
+    const key = keyFor(s.Date, s.WeekID);
+    groups[key] = groups[key] || {revenue:0, units:0, cost:0};
+    groups[key].cost += s.TotalCost;
+  });
+  DATA.expenses.forEach(e=>{
+    const key = keyFor(e.Date, e.WeekID);
+    groups[key] = groups[key] || {revenue:0, units:0, cost:0};
+    groups[key].cost += e.Amount;
+  });
+  const keys = Object.keys(groups).sort();
+  return {keys, groups};
+}
+
+function renderTrend(range){
+  const {keys, groups} = aggregateTrend(range);
+  const revenue = keys.map(k=>groups[k].revenue);
+  const cost = keys.map(k=>groups[k].cost);
+  const profit = keys.map(k=>groups[k].revenue - groups[k].cost);
+  const units = keys.map(k=>groups[k].units);
+
+  destroyChart('trend');
+  charts.trend = new Chart(document.getElementById('chart-trend'), {
+    type:'line',
+    data:{labels:keys, datasets:[
+      {label:'Revenue', data:revenue, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.15)', fill:true, tension:0.3},
+      {label:'Cost+Expenses', data:cost, borderColor:'#f87171', backgroundColor:'rgba(248,113,113,0.1)', fill:true, tension:0.3},
+      {label:'Profit', data:profit, borderColor:'#4ade80', backgroundColor:'rgba(74,222,128,0.12)', fill:true, tension:0.3}
+    ]},
+    options: chartOptions()
+  });
+
+  destroyChart('units');
+  charts.units = new Chart(document.getElementById('chart-units-trend'), {
+    type:'bar',
+    data:{labels:keys, datasets:[{label:'Units Sold', data:units, backgroundColor:'#8b5cf6', borderRadius:6}]},
+    options: {...chartOptions(), plugins:{legend:{display:false}}}
+  });
+}
+
+document.querySelectorAll('#trend-pills .pill').forEach(p=>{
+  p.addEventListener('click', ()=>{
+    document.querySelectorAll('#trend-pills .pill').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');
+    renderTrend(p.dataset.range);
+  });
+});
+
+// ---------- Generic Table Rendering (mirrors Google Sheet columns) ----------
+function fmtCell(val){
+  if(val === null || val === undefined || val === '') return '';
+  if(typeof val === 'number') return Number.isInteger(val) ? val.toLocaleString() : val.toLocaleString(undefined,{maximumFractionDigits:2});
+  return String(val);
+}
+
+function renderTable(theadId, tbodyId, table, filterFn, extraColRenderer){
+  const thead = document.getElementById(theadId);
+  const tbody = document.getElementById(tbodyId);
+  thead.innerHTML = table.columns.map(c=>`<th>${c==='Price/Unit'?'Margin Selling Price':c}</th>`).join('');
+
+  const rows = filterFn ? table.rows.filter(filterFn) : table.rows;
+  tbody.innerHTML = rows.map(row=>{
+    return '<tr>' + table.columns.map(col=>{
+      if(extraColRenderer){
+        const custom = extraColRenderer(col, row);
+        if(custom !== undefined) return custom;
+      }
+      return `<td>${fmtCell(row[col])}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+async function savePrice(id, value, statusEl){
+  if(!APPS_SCRIPT_URL){
+    statusEl.textContent = 'Not connected — open SETUP_INSTRUCTIONS.md';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  statusEl.textContent = 'Saving...';
+  statusEl.style.color = 'var(--muted)';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      body: withKeyBody({action:'updatePrice', id, price: Number(value)})
+    });
+    const json = await res.json();
+    if(json.success){
+      statusEl.textContent = 'Saved ✓';
+      statusEl.style.color = 'var(--green)';
+    }else{
+      throw new Error(json.error || 'Failed');
+    }
+  }catch(err){
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function renderGenericTables(){
+  // Inventory table — Price/Unit column gets an editable input + save button
+  const invFilter = document.getElementById('inventory-search').value.toLowerCase();
+  renderTable('inventory-thead-row', 'inventory-table-body', DATA.rawInventory,
+    row => String(row['Product']||'').toLowerCase().includes(invFilter) || String(row['ID']||'').toLowerCase().includes(invFilter),
+    (col, row) => {
+      if(col === 'Price/Unit'){
+        const id = row['ID'];
+        const val = row[col] !== '' && row[col] !== null && row[col] !== undefined ? row[col] : '';
+        return `<td>
+          <div class="price-edit">
+            <input type="number" step="any" min="0" value="${val}" data-id="${id}" placeholder="set price">
+            <button data-id="${id}">Save</button>
+            <span class="save-status" data-status="${id}"></span>
+          </div>
+        </td>`;
+      }
+      if(col === 'Units at Store'){
+        const units = Number(row[col])||0;
+        const badge = units <= LOW_STOCK_THRESHOLD
+          ? `<span class="badge low">${units} ${units<=0?'(out)':'(low)'}</span>`
+          : `<span class="badge ok">${units}</span>`;
+        return `<td>${badge}</td>`;
+      }
+      if(col === 'Profit Generated'){
+        const v = Number(row[col])||0;
+        return `<td><span class="badge ${v>=0?'profit':'loss'}">${v>=0?'+':''}${fmtMoney(v)}</span></td>`;
+      }
+      if(col === 'Rate of Capital Return'){
+        const v = row[col];
+        if(v === '' || v === null || v === undefined) return `<td>—</td>`;
+        return `<td>${fmtPct(Number(v))}</td>`;
+      }
+      if(['Initial Capital','Returned Capital'].includes(col)){
+        return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      }
+      return undefined; // default rendering
+    });
+
+  document.querySelectorAll('#inventory-table-body .price-edit button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      const input = document.querySelector(`#inventory-table-body input[data-id="${id}"]`);
+      const status = document.querySelector(`#inventory-table-body .save-status[data-status="${id}"]`);
+      savePrice(id, input.value, status);
+    });
+  });
+
+  // Sales table
+  const salesFilter = document.getElementById('sales-search').value.toLowerCase();
+  renderTable('sales-thead-row', 'sales-table-body', DATA.rawSales,
+    row => String(row['Product']||'').toLowerCase().includes(salesFilter),
+    (col, row) => {
+      if(col === 'Total') return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      if(col === 'Unit Price') return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      return undefined;
+    });
+
+  // Stock table
+  const stockFilter = document.getElementById('stock-search').value.toLowerCase();
+  renderTable('stock-thead-row', 'stock-table-body', DATA.rawStock,
+    row => String(row['Product']||'').toLowerCase().includes(stockFilter),
+    (col, row) => {
+      if(col === 'Total Cost') return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      if(col === 'Unit Cost') return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      return undefined;
+    });
+
+  // Expenses table
+  const expFilter = document.getElementById('expenses-search').value.toLowerCase();
+  renderTable('expenses-thead-row', 'expenses-table-body', DATA.rawExpenses,
+    row => String(row['Category']||'').toLowerCase().includes(expFilter) || String(row['Description']||'').toLowerCase().includes(expFilter),
+    (col, row) => {
+      if(col === 'Amount') return `<td>${fmtMoney(Number(row[col])||0)}</td>`;
+      return undefined;
+    });
+}
+
+document.getElementById('inventory-search').addEventListener('input', renderGenericTables);
+document.getElementById('sales-search').addEventListener('input', renderGenericTables);
+document.getElementById('stock-search').addEventListener('input', renderGenericTables);
+document.getElementById('expenses-search').addEventListener('input', renderGenericTables);
+
+
+// ---------- Growth ----------
+function renderGrowth(){
+  const totalInitialCapital = DATA.inventory.reduce((s,r)=>s+r.InitialCapital,0);
+  const totalReturnedCapital = DATA.inventory.reduce((s,r)=>s+r.ReturnedCapital,0);
+  const totalInvProfit = DATA.inventory.reduce((s,r)=>s+r.Profit,0);
+  const overallReturnRate = totalInitialCapital ? totalReturnedCapital/totalInitialCapital : 0;
+
+  document.getElementById('growth-kpi-grid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Initial Capital</div><div class="kpi-value">${fmtMoney(totalInitialCapital)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Returned Capital</div><div class="kpi-value">${fmtMoney(totalReturnedCapital)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Overall Return Rate</div><div class="kpi-value ${overallReturnRate>=1?'green':'red'}">${fmtPct(overallReturnRate)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Net Capital Growth</div><div class="kpi-value ${totalInvProfit>=0?'green':'red'}">${fmtMoney(totalInvProfit)}</div></div>
+  `;
+
+  const capAgg = {};
+  DATA.inventory.forEach(p=>{
+    capAgg[p.Product] = capAgg[p.Product] || {invested:0, returned:0};
+    capAgg[p.Product].invested += p.InitialCapital;
+    capAgg[p.Product].returned += p.ReturnedCapital;
+  });
+  const capLabels = Object.keys(capAgg);
+
+  destroyChart('capital');
+  charts.capital = new Chart(document.getElementById('chart-capital'), {
+    type:'bar',
+    data:{
+      labels: capLabels,
+      datasets:[
+        {label:'Capital Invested', data: capLabels.map(k=>capAgg[k].invested), backgroundColor:'#c4b5fd', borderRadius:6},
+        {label:'Capital Returned', data: capLabels.map(k=>capAgg[k].returned), backgroundColor:'#4ade80', borderRadius:6}
+      ]
+    },
+    options:{...chartOptions(), indexAxis:'y'}
+  });
+
+  document.getElementById('capital-return-list').innerHTML = capLabels.map(name=>{
+    const d = capAgg[name];
+    const rate = d.invested ? d.returned/d.invested : (d.returned > 0 ? Infinity : 0);
+    const rateDisplay = rate === Infinity ? '∞ (no capital cost)' : fmtPct(rate);
+    const color = (rate >= 1 || rate === Infinity) ? 'var(--green)' : 'var(--red)';
+    return `<div class="growth-row">
+      <span class="name">${name}</span>
+      <span class="val" style="color:${color}">${rateDisplay}</span>
+    </div>`;
+  }).join('');
+
+  // Cumulative profit
+  const dailyAgg = {};
+  DATA.sales.forEach(s=>{ dailyAgg[s.Date] = dailyAgg[s.Date] || {rev:0, cost:0}; dailyAgg[s.Date].rev += s.Total; });
+  DATA.stock.forEach(s=>{ dailyAgg[s.Date] = dailyAgg[s.Date] || {rev:0, cost:0}; dailyAgg[s.Date].cost += s.TotalCost; });
+  DATA.expenses.forEach(e=>{ dailyAgg[e.Date] = dailyAgg[e.Date] || {rev:0, cost:0}; dailyAgg[e.Date].cost += e.Amount; });
+  const dates = Object.keys(dailyAgg).sort();
+  let cum = 0;
+  const series = dates.map(d=>{ cum += (dailyAgg[d].rev - dailyAgg[d].cost); return cum; });
+
+  destroyChart('cumulative');
+  charts.cumulative = new Chart(document.getElementById('chart-cumulative'), {
+    type:'line',
+    data:{labels:dates, datasets:[{label:'Cumulative Profit', data:series, borderColor:'#8b5cf6', backgroundColor:'rgba(139,92,246,0.15)', fill:true, tension:0.35, pointRadius:3}]},
+    options: {...chartOptions(), plugins:{legend:{display:false}}}
+  });
+}
+
+// ---------- Add Entry forms ----------
+function populateProductSelects(){
+  const products = [...new Set(DATA.inventory.map(p=>p.Product))];
+  document.querySelectorAll('#form-sale select[name="Product"], #form-stock select[name="Product"]').forEach(sel=>{
+    sel.innerHTML = products.map(p=>`<option value="${p}">${p}</option>`).join('');
+  });
+
+  const editSel = document.getElementById('edit-product-select');
+  editSel.innerHTML = DATA.inventory.map(p=>`<option value="${p.ID}">${p.Product} (${p.ID})</option>`).join('');
+  editSel.onchange = fillEditProductForm;
+  fillEditProductForm();
+}
+
+function fillEditProductForm(){
+  const editSel = document.getElementById('edit-product-select');
+  const item = DATA.inventory.find(p=>p.ID===editSel.value);
+  const form = document.getElementById('form-edit-product');
+  if(!item) return;
+  form.elements['SellingPrice'].value = (item.SellingPrice !== null && item.SellingPrice !== undefined) ? item.SellingPrice : '';
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+document.querySelectorAll('input[type="date"]').forEach(inp => inp.value = todayISO());
+
+async function submitForm(formId, action, msgId){
+  const form = document.getElementById(formId);
+  const msg = document.getElementById(msgId);
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!APPS_SCRIPT_URL){
+      msg.textContent = 'Not connected to Google Sheets — see SETUP_INSTRUCTIONS.md to enable saving.';
+      msg.className = 'form-msg error';
+      return;
+    }
+    const fd = new FormData(form);
+    const payload = {};
+    fd.forEach((v,k)=>{ payload[k] = v; });
+
+    msg.textContent = 'Saving...';
+    msg.className = 'form-msg';
+    try{
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        body: withKeyBody({action, payload})
+      });
+      const json = await res.json();
+      if(json.success){
+        msg.textContent = 'Saved! Reloading data...';
+        msg.className = 'form-msg success';
+        form.reset();
+        document.querySelectorAll('input[type="date"]').forEach(inp => inp.value = todayISO());
+        await loadData();
+      }else{
+        throw new Error(json.error || 'Unknown error');
+      }
+    }catch(err){
+      msg.textContent = 'Error: ' + err.message;
+      msg.className = 'form-msg error';
+    }
+  });
+}
+submitForm('form-sale', 'addSale', 'msg-sale');
+submitForm('form-stock', 'addStock', 'msg-stock');
+submitForm('form-expense', 'addExpense', 'msg-expense');
+
+document.getElementById('form-product').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const msg = document.getElementById('msg-product');
+  if(!APPS_SCRIPT_URL){
+    msg.textContent = 'Not connected to Google Sheets — see SETUP_INSTRUCTIONS.md to enable saving.';
+    msg.className = 'form-msg error';
+    return;
+  }
+  const fd = new FormData(e.target);
+  const payload = {};
+  fd.forEach((v,k)=>{ payload[k] = v; });
+
+  msg.textContent = 'Saving...';
+  msg.className = 'form-msg';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      body: withKeyBody({action:'addProduct', payload})
+    });
+    const json = await res.json();
+    if(json.success){
+      msg.textContent = 'Product registered! Reloading data...';
+      msg.className = 'form-msg success';
+      e.target.reset();
+      await loadData();
+    }else{
+      throw new Error(json.error || 'Unknown error');
+    }
+  }catch(err){
+    msg.textContent = 'Error: ' + err.message;
+    msg.className = 'form-msg error';
+  }
+});
+
+document.getElementById('form-edit-product').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const msg = document.getElementById('msg-edit-product');
+  if(!APPS_SCRIPT_URL){
+    msg.textContent = 'Not connected to Google Sheets — see SETUP_INSTRUCTIONS.md to enable saving.';
+    msg.className = 'form-msg error';
+    return;
+  }
+  const fd = new FormData(e.target);
+  const payload = {};
+  fd.forEach((v,k)=>{ payload[k] = v; });
+
+  msg.textContent = 'Saving...';
+  msg.className = 'form-msg';
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      body: withKeyBody({action:'updateProductPrices', payload})
+    });
+    const json = await res.json();
+    if(json.success){
+      msg.textContent = 'Updated! Reloading data...';
+      msg.className = 'form-msg success';
+      await loadData();
+    }else{
+      throw new Error(json.error || 'Unknown error');
+    }
+  }catch(err){
+    msg.textContent = 'Error: ' + err.message;
+    msg.className = 'form-msg error';
+  }
+});
+
+// ---------- Navigation ----------
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-'+btn.dataset.page).classList.add('active');
+  });
+});
+
+// ---------- Access Gate ----------
+function showAccessGate(msg){
+  const gate = document.getElementById('access-gate');
+  const msgEl = document.getElementById('access-key-msg');
+  gate.style.display = 'flex';
+  msgEl.textContent = msg || '';
+  document.getElementById('access-key-input').focus();
+}
+function hideAccessGate(){
+  document.getElementById('access-gate').style.display = 'none';
+}
+
+document.getElementById('access-key-submit').addEventListener('click', attemptUnlock);
+document.getElementById('access-key-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') attemptUnlock();
+});
+
+async function attemptUnlock(){
+  const input = document.getElementById('access-key-input');
+  const key = input.value.trim();
+  const msgEl = document.getElementById('access-key-msg');
+  if(!key){
+    msgEl.textContent = 'Please enter your access key.';
+    return;
+  }
+  setAccessKey(key);
+
+  if(!APPS_SCRIPT_URL){
+    hideAccessGate();
+    document.getElementById('loading-overlay').style.display = 'flex';
+    await loadData();
+    return;
+  }
+
+  msgEl.textContent = '';
+  document.getElementById('access-key-submit').textContent = 'Checking...';
+  try{
+    const res = await fetch(withKey(APPS_SCRIPT_URL + '?action=getAll'));
+    const raw = await res.json();
+    if(raw.error === 'Unauthorized'){
+      msgEl.textContent = 'Incorrect access key. Please try again.';
+      setAccessKey('');
+      document.getElementById('access-key-submit').textContent = 'Unlock';
+      return;
+    }
+    hideAccessGate();
+    document.getElementById('loading-overlay').style.display = 'flex';
+    await loadData();
+  }catch(err){
+    msgEl.textContent = 'Could not verify key: ' + err.message;
+    document.getElementById('access-key-submit').textContent = 'Unlock';
+  }
+}
+
+document.getElementById('lock-btn').addEventListener('click', ()=>{
+  setAccessKey('');
+  location.reload();
+});
+
+// ---------- Init ----------
+if(getAccessKey()){
+  document.getElementById('loading-overlay').style.display = 'flex';
+  loadData();
+}else{
+  showAccessGate();
+}
+</script>
+</body>
+</html>
